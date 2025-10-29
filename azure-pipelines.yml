@@ -1,0 +1,114 @@
+# ASP.NET Core (.NET Framework)
+# Build and test ASP.NET Core projects targeting the full .NET Framework.
+# Add steps that publish symbols, save build artifacts, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+
+trigger:
+  branches:
+    include:
+    - master
+    - develop
+pool:
+  vmImage: 'windows-latest'
+
+
+variables:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+
+  major: 1  # IDS Schema Major
+  minor: 0 # IDS Schema Minor
+  majorMinor: $(major).$(minor)
+  patch: $[counter(variables['majorMinor'], 108)]
+  suffix: $[replace(variables['Build.SourceBranchName'], '_', '-')]
+  
+  ${{ if ne(variables['Build.SourceBranchName'], 'master')}}:
+    branchPatch: $[counter(variables['Build.SourceBranchName'], 0)]
+    branchTag: $[format('-{0}.{1}', variables['suffix'], variables['branchPatch'])]
+  ${{ else }}:
+    branchTag: ''
+  version: $(majorMinor).$(patch)
+  semVer: $(version)$(branchTag)
+
+name: $(BuildDefinitionName)-$(suffix)-$(major).$(minor).$(patch)
+
+jobs:
+- job: Build
+  steps:
+
+  - task: UseDotNet@2
+    displayName: 'Install .NET'
+    inputs:
+      packageType: 'sdk'
+      version: '8.0.100'
+
+  - task: VersionDotNetCoreAssemblies@3
+    displayName: 'Version files'
+    inputs:
+      Path: '$(Build.SourcesDirectory)'
+      VersionNumber: '$(semVer)'
+      Injectversion: True
+      VersionRegex: '\d+\.\d+\.\d+\.\d+'
+      FilenamePattern: 'directory.build.props'
+      AddDefault: false
+      Field: 'Version'
+      OutputVersion: 'OutputedVersion'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Restore'
+    inputs:
+      command: 'restore'
+      projects: '**/*.sln'
+      feedsToUse: 'config'
+      nugetConfigPath: 'nuget.config'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build & Pack'
+    inputs:
+      command: 'pack'
+      packagesToPack: '**/*.sln'
+      versioningScheme: 'off'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Test'
+    inputs:
+      command: 'test'
+      projects: '**/*.Tests.csproj'
+      #arguments: '-v normal -l "console;verbosity=detailed"'
+  
+  - task: CopyFiles@2
+    name: ''
+    displayName: 'Copy Nuget Packages to: $(build.artifactstagingdirectory)'
+    inputs:
+      SourceFolder: $(build.sourcesdirectory)
+      Contents: '**\bin\$(BuildConfiguration)\**\*.nupkg'
+      TargetFolder: $(build.artifactstagingdirectory)
+
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifacts
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+
+# Publish to NuGet/Artifact feed based on the source branch
+
+  - task: NuGetCommand@2
+    displayName: 'Publish private releases to FlexGet'
+    inputs:
+      command: 'push'
+      packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
+      nuGetFeedType: 'internal'
+      publishVstsFeed: 'f8484947-4741-4322-87d4-9a1586904e2d'
+    condition: and(succeeded(), ne(variables['Build.SourceBranchName'], 'master'))
+
+  - task: NuGetCommand@2
+    displayName: 'Publish master releases to xbim public NuGet feed'
+    inputs:
+      command: push
+      nuGetFeedType: external
+      packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg'
+      publishFeedCredentials: 'nuget'
+    condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'master'))
+
+
+  

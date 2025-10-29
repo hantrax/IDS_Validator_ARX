@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <ImplicitUsings>false</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageReadmeFile>Readme.md</PackageReadmeFile>
+    <Description>Enables validation of IFC models with BuildingSmart IDS using xbim Toolkit</Description>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <NoWarn>1701;1702;CS1591</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <NoWarn>1701;1702;CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Migration\IDS-Audit_migration.xslt" />
+    <None Remove="Migration\IDS_v0.9.3-v0.9.6_migration.xsl" />
+    <None Remove="Migration\IDS_v0.9.6-v0.9.7_migration.xsl" />
+    <None Remove="Migration\IDS_v0.9.7-v1.0_migration.xsl" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Migration\IDS_v0.9.7-v1.0_migration.xsl" />
+    <EmbeddedResource Include="Migration\IDS_v0.9.6-v0.9.7_migration.xsl" />
+    <EmbeddedResource Include="Migration\IDS_v0.9.3-v0.9.6_migration.xsl" />
+    <EmbeddedResource Include="Migration\IDS-Audit_migration.xslt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\.editorconfig" Link=".editorconfig" />
+    <None Include="..\Readme.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Xbim.IDS.Validator.Common\Xbim.IDS.Validator.Common.csproj" />
+	</ItemGroup>
+
+</Project>
