@@ -39,10 +39,6 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Xbim.Essentials" Version="6.0.563" />
-  </ItemGroup>
-
 	<ItemGroup>
 		<ProjectReference Include="..\Xbim.IDS.Validator.Common\Xbim.IDS.Validator.Common.csproj" />
 	</ItemGroup>
