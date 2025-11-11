@@ -99,6 +99,7 @@ namespace Xbim.IDS.Validator.Console.Commands
                         }
                         console.WriteImportantLine("IDS File: {0}", ids);
                         console.WriteInfoLine("Validating...");
+                       
                         var options = new VerificationOptions
                         {
                             IncludeSubtypes = false,
@@ -133,7 +134,7 @@ namespace Xbim.IDS.Validator.Console.Commands
                             return -1;
                         }
                         //string curFolder = Path.GetDirectoryName(modelFile) + "\\"+ Path.GetFileNameWithoutExtension(modelFile)+ "\\";
-
+                       
                         string curFolder = Path.GetDirectoryName(modelFile) + "\\";
 
 

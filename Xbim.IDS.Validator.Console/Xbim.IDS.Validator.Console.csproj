@@ -16,7 +16,8 @@
     <SelfContained>true</SelfContained>
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>partial</TrimMode>
-	</PropertyGroup>
+    <LangVersion>latest</LangVersion>
+   </PropertyGroup>
 
   <PropertyGroup Condition="'$(SupportSQLite)' == 'True'">
     <DefineConstants>$(DefineConstants);SQLite</DefineConstants>
@@ -29,6 +30,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
 		<PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+		<PackageReference Include="Xbim.Essentials" Version="6.0.563" />
 	</ItemGroup>
 
   <ItemGroup Condition="'$(SupportSQLite)' == 'True'">
