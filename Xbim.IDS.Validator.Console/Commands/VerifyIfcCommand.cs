@@ -1,4 +1,6 @@
-﻿using ClosedXML.Excel;
+﻿using ARXCommand;
+using ClosedXML.Excel;
+using ARXCommand;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -90,6 +92,9 @@ namespace Xbim.IDS.Validator.Console.Commands
                     console.WriteInfoLine("Model loaded in {0}s", sw.Elapsed.TotalSeconds);
                     // Normally we'd inject rather than service discovery
 
+                    string schemaVersion = model.SchemaVersion.ToString().ToUpper();
+
+
                     foreach (var ids in idsFiles)
                     {
                         if (File.Exists(ids) != true)
@@ -123,6 +128,8 @@ namespace Xbim.IDS.Validator.Console.Commands
 
                         var results = await idsValidator.ValidateAgainstIdsAsync(model, ids, logger, OutputRequirement, options);
 
+
+
                         sw.Stop();
                         failedSpecs += results.ExecutedRequirements.Count(r => r.Status == ValidationStatus.Fail);
 
@@ -133,8 +140,16 @@ namespace Xbim.IDS.Validator.Console.Commands
                             console.WriteImportantLine($"Validation failed to run: {results.Message}");
                             return -1;
                         }
+
+                        if (results.Status == ValidationStatus.Inconclusive)
+                        {
+                            console.WriteImportantLine($"Validation failed to run: {results.Message}");
+                            return -1;
+                        }
+
+
                         //string curFolder = Path.GetDirectoryName(modelFile) + "\\"+ Path.GetFileNameWithoutExtension(modelFile)+ "\\";
-                       
+
                         string curFolder = Path.GetDirectoryName(modelFile) + "\\";
 
 
@@ -159,16 +174,21 @@ namespace Xbim.IDS.Validator.Console.Commands
                         string nomeFileExcel = reportFolder+Path.ChangeExtension(Path.GetFileNameWithoutExtension(modelFile)+"_Report-IDS", ".xlsx");
                         string rtfReportPath = reportFolder + Path.ChangeExtension(Path.GetFileNameWithoutExtension(modelFile)+"_Report-IDS", ".rtf");
                         string wordReportPath = reportFolder + Path.ChangeExtension(Path.GetFileNameWithoutExtension(modelFile)+"_Report-IDS", ".docx");
+                        string bcfreportPath = reportFolder + Path.ChangeExtension(Path.GetFileNameWithoutExtension(modelFile) + "_Report-IDS", ".bcfzip");
 
+
+                        var ARXNewCommand = new ARXNewCommand();
+                        //ARXNewCommand.BCFExport(results, modelFile, bcfreportPath);
                         //await SaveResultsToFileAsync(results, txtReportPath);
 
                         //SaveResultsToRTF(results, rtfReportPath);
-                        SaveResultsToWORD(results, wordReportPath, Path.GetFileName(modelFile), Path.GetFileName(ids), model.SchemaVersion.ToString());
+
+                        ARXNewCommand.SaveResultsToWORD(results, wordReportPath, Path.GetFileName(modelFile), Path.GetFileName(ids), model.SchemaVersion.ToString());
 
                         {
                             if (results.Status is ValidationStatus.Fail)
 
-                                SaveExcelFile(results, nomeFileExcel);
+                                ARXNewCommand.SaveExcelFile(results, nomeFileExcel);
 
                         }
 
@@ -185,7 +205,9 @@ namespace Xbim.IDS.Validator.Console.Commands
 
                         generator.Generate(reportData, htmlReportPath);
 
+                       
 
+                        
                     }
 
                 }
@@ -221,6 +243,9 @@ namespace Xbim.IDS.Validator.Console.Commands
             var totalPassedResults = results.ExecutedRequirements.Sum(r => r.PassedResults.Count());
             var totalFailedResults = results.ExecutedRequirements.Sum(r => r.FailedResults.Count());
             var totalPercent = totalElementsTested > 0 ? (float)totalPassedResults / totalElementsTested * 100 : 0;
+            
+            
+            
             console?.WriteInfoLine(White, $"Detailed Results:");
             console?.WriteImportantLine(Gray, " no      Pass /Total  %age   #Fail  Specification");
             console?.WriteImportantLine(Gray, "------ -------------- ------ -----  ---------------------------------------------");
@@ -399,379 +424,379 @@ namespace Xbim.IDS.Validator.Console.Commands
             return model;
         }
 
-        static string SanitizeSheetName(string name)
-        {
-            if (string.IsNullOrWhiteSpace(name)) return "Foglio";
-            var invalidChars = new[] { '\\', '/', '?', '*', '[', ']' };
-            foreach (char c in invalidChars) { name = name.Replace(c, '_'); }
-            if (name.Length > 31) { name = name.Substring(0, 31); }
-            return name;
-        }
+        //static string SanitizeSheetName(string name)
+        //{
+        //    if (string.IsNullOrWhiteSpace(name)) return "Foglio";
+        //    var invalidChars = new[] { '\\', '/', '?', '*', '[', ']' };
+        //    foreach (char c in invalidChars) { name = name.Replace(c, '_'); }
+        //    if (name.Length > 31) { name = name.Substring(0, 31); }
+        //    return name;
+        //}
 
 
 
-        public void SaveExcelFile(ValidationOutcome outcome, string fileExcel)
-        {
-
-            try
-            {
-                using var workbook = new XLWorkbook();
-                string strNameEntity = "";
-                int Riga = 2;
-                int Colonna = 1;
-                var tmpRiga = new strRigaExcel();
-                var tmpRigaLista = new List<strRigaExcel>();
-
-                foreach (var requirement in outcome.ExecutedRequirements)
-                {
-                    if (requirement.Status is ValidationStatus.Fail)
-                    {
-                        var sheetName = SanitizeSheetName(requirement.Specification.Name);
-                        var worksheet = workbook.Worksheets.Add(sheetName);
-                        worksheet.Cell(1, 1).Value = "ERRORE";
-                        worksheet.Cell(1, 1).Style.Fill.SetBackgroundColor(XLColor.Gray);
-                        worksheet.Cell(1, 4).Value = "NOME OGGETTO";
-                        worksheet.Cell(1, 5).Value = "GUID";
-                        worksheet.Cell(1, 6).Value = "RevitID";
-                        worksheet.Cell(1, 7).Value = "Elemento";
+        //public void SaveExcelFile(ValidationOutcome outcome, string fileExcel)
+        //{
+
+        //    try
+        //    {
+        //        using var workbook = new XLWorkbook();
+        //        string strNameEntity = "";
+        //        int Riga = 2;
+        //        int Colonna = 1;
+        //        var tmpRiga = new strRigaExcel();
+        //        var tmpRigaLista = new List<strRigaExcel>();
+
+        //        foreach (var requirement in outcome.ExecutedRequirements)
+        //        {
+        //            if (requirement.Status is ValidationStatus.Fail)
+        //            {
+        //                var sheetName = SanitizeSheetName(requirement.Specification.Name);
+        //                var worksheet = workbook.Worksheets.Add(sheetName);
+        //                worksheet.Cell(1, 1).Value = "ERRORE";
+        //                worksheet.Cell(1, 1).Style.Fill.SetBackgroundColor(XLColor.Gray);
+        //                worksheet.Cell(1, 4).Value = "NOME OGGETTO";
+        //                worksheet.Cell(1, 5).Value = "GUID";
+        //                worksheet.Cell(1, 6).Value = "RevitID";
+        //                worksheet.Cell(1, 7).Value = "Elemento";
 
 
-                        // Dettagli errori
-                        var failedEntities = requirement.ApplicableResults.Where(e => e.ValidationStatus != ValidationStatus.Pass);
-                        if (failedEntities.Any())
-                        {
+        //                // Dettagli errori
+        //                var failedEntities = requirement.ApplicableResults.Where(e => e.ValidationStatus != ValidationStatus.Pass);
+        //                if (failedEntities.Any())
+        //                {
 
-                            foreach (var entity in failedEntities)
-                            {
+        //                    foreach (var entity in failedEntities)
+        //                    {
 
-                                var ifcEntity = entity.FullEntity;
-                                var ifcRoot = ifcEntity as IIfcRoot;
+        //                        var ifcEntity = entity.FullEntity;
+        //                        var ifcRoot = ifcEntity as IIfcRoot;
 
 
 
-                                tmpRiga.Elemento = entity;
-                                if (entity is IIfcObject failingObject1)
-                                {
-                                    tmpRiga.GlobalID = failingObject1.GlobalId;
+        //                        tmpRiga.Elemento = entity;
+        //                        if (entity is IIfcObject failingObject1)
+        //                        {
+        //                            tmpRiga.GlobalID = failingObject1.GlobalId;
 
-                                }
+        //                        }
 
-                                foreach (var message in entity.Messages)
-                                {
-                                    if (message.Status != ValidationStatus.Pass)
-                                    {
-                                        string[] words = ifcRoot?.Name.ToString().Split(":");
+        //                        foreach (var message in entity.Messages)
+        //                        {
+        //                            if (message.Status != ValidationStatus.Pass)
+        //                            {
+        //                                string[] words = ifcRoot?.Name.ToString().Split(":");
 
-                                        var numWord = words.Count();
+        //                                var numWord = words.Count();
 
 
-                                        worksheet.Cell(Riga, 1).Value = message.ToString();
-                                        worksheet.Cell(Riga, 1).Style.Alignment.WrapText=true;
+        //                                worksheet.Cell(Riga, 1).Value = message.ToString();
+        //                                worksheet.Cell(Riga, 1).Style.Alignment.WrapText=true;
 
-                                        worksheet.Cell(Riga, 4).Value = ifcRoot?.Name.ToString();
-                                        worksheet.Cell(Riga, 5).Value = ifcRoot?.GlobalId.ToString();
-                                        worksheet.Cell(Riga, 6).Value = words[numWord-1];
-                                        worksheet.Cell(Riga, 7).Value = entity.FullEntity.ToString();
-                                        worksheet.Row(Riga).AdjustToContents(1);
-                                        //worksheet.Row(Riga).ClearHeight();
+        //                                worksheet.Cell(Riga, 4).Value = ifcRoot?.Name.ToString();
+        //                                worksheet.Cell(Riga, 5).Value = ifcRoot?.GlobalId.ToString();
+        //                                worksheet.Cell(Riga, 6).Value = words[numWord-1];
+        //                                worksheet.Cell(Riga, 7).Value = entity.FullEntity.ToString();
+        //                                worksheet.Row(Riga).AdjustToContents(1);
+        //                                //worksheet.Row(Riga).ClearHeight();
 
 
-                                        Riga += 1;
+        //                                Riga += 1;
 
-                                    }
+        //                            }
 
 
-                                }
+        //                        }
 
 
-                            }
+        //                    }
 
-                        }
-                        Riga = 2;
-                        worksheet.Columns().AdjustToContents();
-                        worksheet.Rows().AdjustToContents(1);
-                    }
-                }
+        //                }
+        //                Riga = 2;
+        //                worksheet.Columns().AdjustToContents();
+        //                worksheet.Rows().AdjustToContents(1);
+        //            }
+        //        }
 
 
-                workbook.SaveAs(fileExcel);
-                workbook.Dispose();
-            }
-            catch (Exception ex)
-            {
-                // Cattura altre possibili eccezioni (es. percorso non valido).
-                //Console.WriteLine($"Si è verificato un errore imprevisto: {ex.Message}");
-                //Console.WriteLine($"ERRORE: {ex.Message}");
-                if (ex.InnerException != null)
-                {
-                    //Console.WriteLine($"Dettaglio: {ex.InnerException.Message}");
-                }
-                //Console.WriteLine($"StackTrace: {ex.StackTrace}");
-            }
-        }
-        public static void SaveResultsToWORD(ValidationOutcome outcome, string outputPath, string modello, string idsFile, string IFCVersion)
-        {
-            // Crea un nuovo documento Word.
-            using (WordprocessingDocument wordDocument = WordprocessingDocument.Create(outputPath, WordprocessingDocumentType.Document))
-            {
-                // Aggiungi una parte principale al documento.
-                MainDocumentPart mainPart = wordDocument.AddMainDocumentPart();
-                mainPart.Document = new Document();
-                Body body = mainPart.Document.AppendChild(new Body());
+        //        workbook.SaveAs(fileExcel);
+        //        workbook.Dispose();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        // Cattura altre possibili eccezioni (es. percorso non valido).
+        //        //Console.WriteLine($"Si è verificato un errore imprevisto: {ex.Message}");
+        //        //Console.WriteLine($"ERRORE: {ex.Message}");
+        //        if (ex.InnerException != null)
+        //        {
+        //            //Console.WriteLine($"Dettaglio: {ex.InnerException.Message}");
+        //        }
+        //        //Console.WriteLine($"StackTrace: {ex.StackTrace}");
+        //    }
+        //}
+        //public static void SaveResultsToWORD(ValidationOutcome outcome, string outputPath, string modello, string idsFile, string IFCVersion)
+        //{
+        //    // Crea un nuovo documento Word.
+        //    using (WordprocessingDocument wordDocument = WordprocessingDocument.Create(outputPath, WordprocessingDocumentType.Document))
+        //    {
+        //        // Aggiungi una parte principale al documento.
+        //        MainDocumentPart mainPart = wordDocument.AddMainDocumentPart();
+        //        mainPart.Document = new Document();
+        //        Body body = mainPart.Document.AppendChild(new Body());
 
 
-                SectionProperties sectionProps = new SectionProperties();
+        //        SectionProperties sectionProps = new SectionProperties();
 
 
-                PageSize pageSize = new PageSize()
-                {
-                    Width = (UInt32Value)23810U, // Larghezza A3 in Twips (altezza se verticale)
-                    Height = (UInt32Value)16836U  // Altezza A3 in Twips (larghezza se verticale)
-                };
+        //        PageSize pageSize = new PageSize()
+        //        {
+        //            Width = (UInt32Value)23810U, // Larghezza A3 in Twips (altezza se verticale)
+        //            Height = (UInt32Value)16836U  // Altezza A3 in Twips (larghezza se verticale)
+        //        };
 
-                pageSize.Orient = PageOrientationValues.Landscape;
+        //        pageSize.Orient = PageOrientationValues.Landscape;
 
-                sectionProps.Append(pageSize);
+        //        sectionProps.Append(pageSize);
 
 
-                // Aggiungi la sezione al corpo del documento
-                body.Append(sectionProps);
+        //        // Aggiungi la sezione al corpo del documento
+        //        body.Append(sectionProps);
 
 
 
 
 
-                RunProperties runProperties1 = new RunProperties(); // Definisce le proprietà del testo (es. colore).
-                runProperties1.AppendChild(new Color() { Val = "#3381d3" });
-                FontSize fontSize = new FontSize() { Val = "40" };
-                runProperties1.Append(fontSize);
-                Bold bold = new Bold(); // Equivale a <w:b/>
-                runProperties1.Append(bold);
-                Paragraph para1 = body.AppendChild(new Paragraph());
-                Run run1 = para1.AppendChild(new Run());
-                run1.AppendChild(runProperties1);
+        //        RunProperties runProperties1 = new RunProperties(); // Definisce le proprietà del testo (es. colore).
+        //        runProperties1.AppendChild(new Color() { Val = "#3381d3" });
+        //        FontSize fontSize = new FontSize() { Val = "40" };
+        //        runProperties1.Append(fontSize);
+        //        Bold bold = new Bold(); // Equivale a <w:b/>
+        //        runProperties1.Append(bold);
+        //        Paragraph para1 = body.AppendChild(new Paragraph());
+        //        Run run1 = para1.AppendChild(new Run());
+        //        run1.AppendChild(runProperties1);
 
-                run1.AppendChild(new Text($"Nome Modello:   {modello}"));
+        //        run1.AppendChild(new Text($"Nome Modello:   {modello}"));
 
-                RunProperties runProperties2 = new RunProperties(); // Definisce le proprietà del testo (es. colore).
-                runProperties2.AppendChild(new Color() { Val = "#3381d3" });
-                fontSize = new FontSize() { Val = "40" };
-                runProperties2.Append(fontSize);
-                bold = new Bold(); // Equivale a <w:b/>
-                runProperties2.Append(bold);
-                Paragraph para2 = body.AppendChild(new Paragraph());
-                Run run2 = para2.AppendChild(new Run());
-                run2.AppendChild(runProperties2);
+        //        RunProperties runProperties2 = new RunProperties(); // Definisce le proprietà del testo (es. colore).
+        //        runProperties2.AppendChild(new Color() { Val = "#3381d3" });
+        //        fontSize = new FontSize() { Val = "40" };
+        //        runProperties2.Append(fontSize);
+        //        bold = new Bold(); // Equivale a <w:b/>
+        //        runProperties2.Append(bold);
+        //        Paragraph para2 = body.AppendChild(new Paragraph());
+        //        Run run2 = para2.AppendChild(new Run());
+        //        run2.AppendChild(runProperties2);
 
-                run2.AppendChild(new Text($"Nome File IDS:   {idsFile}"));
+        //        run2.AppendChild(new Text($"Nome File IDS:   {idsFile}"));
 
-                body.AppendChild(new Paragraph(new Run(new Text(""))));
+        //        body.AppendChild(new Paragraph(new Run(new Text(""))));
 
 
-                RunProperties runProperties3 = new RunProperties(); // Definisce le proprietà del testo (es. colore).
-                runProperties3.AppendChild(new Color() { Val = "#3381d3" });
-                fontSize = new FontSize() { Val = "40" };
-                runProperties3.Append(fontSize);
-                bold = new Bold(); // Equivale a <w:b/>
-                runProperties3.Append(bold);
-                Paragraph para3 = body.AppendChild(new Paragraph());
-                Run run3 = para3.AppendChild(new Run());
-                run3.AppendChild(runProperties3);
+        //        RunProperties runProperties3 = new RunProperties(); // Definisce le proprietà del testo (es. colore).
+        //        runProperties3.AppendChild(new Color() { Val = "#3381d3" });
+        //        fontSize = new FontSize() { Val = "40" };
+        //        runProperties3.Append(fontSize);
+        //        bold = new Bold(); // Equivale a <w:b/>
+        //        runProperties3.Append(bold);
+        //        Paragraph para3 = body.AppendChild(new Paragraph());
+        //        Run run3 = para3.AppendChild(new Run());
+        //        run3.AppendChild(runProperties3);
 
-                run3.AppendChild(new Text($"Versione IFC: {IFCVersion} - Data Elaborazione: {DateTime.Now:dd-MM-yyyy HH:mm:ss}"));
+        //        run3.AppendChild(new Text($"Versione IFC: {IFCVersion} - Data Elaborazione: {DateTime.Now:dd-MM-yyyy HH:mm:ss}"));
 
-                body.AppendChild(new Paragraph(new Run(new Text(""))));
+        //        body.AppendChild(new Paragraph(new Run(new Text(""))));
 
 
 
 
 
-                foreach (ValidationRequirement req in outcome.ExecutedRequirements)
-                {
-                    var passed = req.PassedResults.Count();
+        //        foreach (ValidationRequirement req in outcome.ExecutedRequirements)
+        //        {
+        //            var passed = req.PassedResults.Count();
 
-                    //run2.AppendChild(new Text(req.Status.ToString()));
+        //            //run2.AppendChild(new Text(req.Status.ToString()));
 
-                    if (req.Status == ValidationStatus.Fail || req.Status == ValidationStatus.Error)
-                    {
+        //            if (req.Status == ValidationStatus.Fail || req.Status == ValidationStatus.Error)
+        //            {
 
-                        Paragraph paraN = body.AppendChild(new Paragraph());
-                        Run runN = paraN.AppendChild(new Run());
-                        RunProperties runPropsN = new RunProperties();
-                        // Imposta il colore a nero. Anche se il nero è il colore predefinito, lo si specifica per chiarezza.
-                        fontSize = new FontSize() { Val = "30" };
-                        runPropsN.Append(fontSize);
-                        bold = new Bold(); // Equivale a <w:b/>
-                        runPropsN.Append(bold);
-                        runPropsN.Append(new Color() { Val = "#FF0000" });
-                        runN.Append(runPropsN);
-                        runN.AppendChild(new Text($"{req.Status.ToString().ToUpper()}    |"));
+        //                Paragraph paraN = body.AppendChild(new Paragraph());
+        //                Run runN = paraN.AppendChild(new Run());
+        //                RunProperties runPropsN = new RunProperties();
+        //                // Imposta il colore a nero. Anche se il nero è il colore predefinito, lo si specifica per chiarezza.
+        //                fontSize = new FontSize() { Val = "30" };
+        //                runPropsN.Append(fontSize);
+        //                bold = new Bold(); // Equivale a <w:b/>
+        //                runPropsN.Append(bold);
+        //                runPropsN.Append(new Color() { Val = "#FF0000" });
+        //                runN.Append(runPropsN);
+        //                runN.AppendChild(new Text($"{req.Status.ToString().ToUpper()}    |"));
 
-                        Run runN1 = paraN.AppendChild(new Run());
-                        RunProperties runPropsN1 = new RunProperties();
-                        runPropsN1.Append(new Color() { Val = "#000000" });
-                        runN1.Append(runPropsN1);
-                        runN1.AppendChild(new Text($"    {req.Specification.Name}    [{passed} passed from {req.ApplicableResults.Count}]    -"));
+        //                Run runN1 = paraN.AppendChild(new Run());
+        //                RunProperties runPropsN1 = new RunProperties();
+        //                runPropsN1.Append(new Color() { Val = "#000000" });
+        //                runN1.Append(runPropsN1);
+        //                runN1.AppendChild(new Text($"    {req.Specification.Name}    [{passed} passed from {req.ApplicableResults.Count}]    -"));
 
-                        Run runN2 = paraN.AppendChild(new Run());
-                        RunProperties runPropsN2 = new RunProperties();
-                        runPropsN2.Append(new Color() { Val = "#3381d3" });
-                        runN2.Append(runPropsN2);
-                        runN2.AppendChild(new Text($"    {req.Specification.Cardinality.Description} Requirement"));
+        //                Run runN2 = paraN.AppendChild(new Run());
+        //                RunProperties runPropsN2 = new RunProperties();
+        //                runPropsN2.Append(new Color() { Val = "#3381d3" });
+        //                runN2.Append(runPropsN2);
+        //                runN2.AppendChild(new Text($"    {req.Specification.Cardinality.Description} Requirement"));
 
 
-                    }
-                    else
-                    {
+        //            }
+        //            else
+        //            {
 
-                        Paragraph paraN1 = body.AppendChild(new Paragraph());
-                        Run runN1 = paraN1.AppendChild(new Run());
-                        RunProperties runPropsN1 = new RunProperties();
+        //                Paragraph paraN1 = body.AppendChild(new Paragraph());
+        //                Run runN1 = paraN1.AppendChild(new Run());
+        //                RunProperties runPropsN1 = new RunProperties();
 
-                        fontSize = new FontSize() { Val = "30" };
-                        runPropsN1.Append(fontSize);
-                        bold = new Bold(); // Equivale a <w:b/>
-                        runPropsN1.Append(bold);
-                        runPropsN1.Append(new Color() { Val = "#287233" });
-                        runN1.Append(runPropsN1);
+        //                fontSize = new FontSize() { Val = "30" };
+        //                runPropsN1.Append(fontSize);
+        //                bold = new Bold(); // Equivale a <w:b/>
+        //                runPropsN1.Append(bold);
+        //                runPropsN1.Append(new Color() { Val = "#287233" });
+        //                runN1.Append(runPropsN1);
 
-                        runN1.AppendChild(new Text($"{req.Status.ToString().ToUpper()}    |"));
+        //                runN1.AppendChild(new Text($"{req.Status.ToString().ToUpper()}    |"));
 
 
-                        Run runN2 = paraN1.AppendChild(new Run());
-                        RunProperties runPropsN2 = new RunProperties();
-                        runPropsN2.Append(new Color() { Val = "#000000" });
-                        runN2.Append(runPropsN2);
-                        runN2.AppendChild(new Text($"    {req.Specification.Name}    [{passed} passed from {req.ApplicableResults.Count}]    -"));
+        //                Run runN2 = paraN1.AppendChild(new Run());
+        //                RunProperties runPropsN2 = new RunProperties();
+        //                runPropsN2.Append(new Color() { Val = "#000000" });
+        //                runN2.Append(runPropsN2);
+        //                runN2.AppendChild(new Text($"    {req.Specification.Name}    [{passed} passed from {req.ApplicableResults.Count}]    -"));
 
-                        Run runN3 = paraN1.AppendChild(new Run());
-                        RunProperties runPropsN3 = new RunProperties();
-                        runPropsN3.Append(new Color() { Val = "#0076ad" });
-                        runN3.Append(runPropsN3);
-                        runN3.AppendChild(new Text($"    {req.Specification.Cardinality.Description} Requirement"));
+        //                Run runN3 = paraN1.AppendChild(new Run());
+        //                RunProperties runPropsN3 = new RunProperties();
+        //                runPropsN3.Append(new Color() { Val = "#0076ad" });
+        //                runN3.Append(runPropsN3);
+        //                runN3.AppendChild(new Text($"    {req.Specification.Cardinality.Description} Requirement"));
 
 
 
-                    }
+        //            }
 
-                    foreach (var itm in req.ApplicableResults)
-                    {
-                        if (req.Status == ValidationStatus.Error)
-                        {
+        //            foreach (var itm in req.ApplicableResults)
+        //            {
+        //                if (req.Status == ValidationStatus.Error)
+        //                {
 
-                            Paragraph paraN1 = body.AppendChild(new Paragraph());
-                            Run runN1 = paraN1.AppendChild(new Run());
-                            RunProperties runPropsN1 = new RunProperties();
+        //                    Paragraph paraN1 = body.AppendChild(new Paragraph());
+        //                    Run runN1 = paraN1.AppendChild(new Run());
+        //                    RunProperties runPropsN1 = new RunProperties();
 
-                            //fontSize = new FontSize() { Val = "30" };
-                            //runPropsN1.Append(fontSize);
-                            bold = new Bold(); // Equivale a <w:b/>
-                            runPropsN1.Append(bold);
-                            runPropsN1.Append(new Color() { Val = "#FF0000" });
-                            runN1.Append(runPropsN1);
+        //                    //fontSize = new FontSize() { Val = "30" };
+        //                    //runPropsN1.Append(fontSize);
+        //                    bold = new Bold(); // Equivale a <w:b/>
+        //                    runPropsN1.Append(bold);
+        //                    runPropsN1.Append(new Color() { Val = "#FF0000" });
+        //                    runN1.Append(runPropsN1);
 
-                            runN1.AppendChild(new Text($"{StatusIcon(itm.ValidationStatus)} |"));
+        //                    runN1.AppendChild(new Text($"{StatusIcon(itm.ValidationStatus)} |"));
 
-                            foreach (var msg in itm.Messages.Where(m => m.Status != ValidationStatus.Pass))
-                            {
+        //                    foreach (var msg in itm.Messages.Where(m => m.Status != ValidationStatus.Pass))
+        //                    {
 
-                                Run runN2 = paraN1.AppendChild(new Run());
-                                RunProperties runPropsN2 = new RunProperties();
-                                runPropsN2.Append(new Color() { Val = "#000000" });
-                                runN2.Append(runPropsN2);
-                                runN2.AppendChild(new Text($"    {req.Specification.Name}    [{passed} passed from {req.ApplicableResults.Count}]    -"));
+        //                        Run runN2 = paraN1.AppendChild(new Run());
+        //                        RunProperties runPropsN2 = new RunProperties();
+        //                        runPropsN2.Append(new Color() { Val = "#000000" });
+        //                        runN2.Append(runPropsN2);
+        //                        runN2.AppendChild(new Text($"    {req.Specification.Name}    [{passed} passed from {req.ApplicableResults.Count}]    -"));
 
 
-                                Run runN3 = paraN1.AppendChild(new Run());
-                                RunProperties runPropsN3 = new RunProperties();
-                                runPropsN3.Append(new Color() { Val = "#0076ad" });
-                                runN3.Append(runPropsN3);
-                                runN3.AppendChild(new Text($": {msg?.Reason}\n"));
+        //                        Run runN3 = paraN1.AppendChild(new Run());
+        //                        RunProperties runPropsN3 = new RunProperties();
+        //                        runPropsN3.Append(new Color() { Val = "#0076ad" });
+        //                        runN3.Append(runPropsN3);
+        //                        runN3.AppendChild(new Text($": {msg?.Reason}\n"));
 
 
-                                Run runN4 = paraN1.AppendChild(new Run());
-                                RunProperties runPropsN4 = new RunProperties();
-                                runPropsN4.Append(new Color() { Val = "#0076ad" });
-                                runN4.Append(runPropsN4);
-                                runN4.AppendChild(new Text($"     {msg}\n"));
+        //                        Run runN4 = paraN1.AppendChild(new Run());
+        //                        RunProperties runPropsN4 = new RunProperties();
+        //                        runPropsN4.Append(new Color() { Val = "#0076ad" });
+        //                        runN4.Append(runPropsN4);
+        //                        runN4.AppendChild(new Text($"     {msg}\n"));
 
 
-                            }
+        //                    }
 
-                        }
-                        else if (req.IsFailure(itm))
-                        {
+        //                }
+        //                else if (req.IsFailure(itm))
+        //                {
 
-                            Paragraph paraN1 = body.AppendChild(new Paragraph());
-                            Run runN1 = paraN1.AppendChild(new Run());
-                            RunProperties runPropsN1 = new RunProperties();
+        //                    Paragraph paraN1 = body.AppendChild(new Paragraph());
+        //                    Run runN1 = paraN1.AppendChild(new Run());
+        //                    RunProperties runPropsN1 = new RunProperties();
 
-                            //fontSize = new FontSize() { Val = "30" };
-                            //runPropsN1.Append(fontSize);
-                            bold = new Bold(); // Equivale a <w:b/>
-                            runPropsN1.Append(bold);
-                            runPropsN1.Append(new Color() { Val = "#FF0000" });
-                            runN1.Append(runPropsN1);
+        //                    //fontSize = new FontSize() { Val = "30" };
+        //                    //runPropsN1.Append(fontSize);
+        //                    bold = new Bold(); // Equivale a <w:b/>
+        //                    runPropsN1.Append(bold);
+        //                    runPropsN1.Append(new Color() { Val = "#FF0000" });
+        //                    runN1.Append(runPropsN1);
 
-                            runN1.AppendChild(new Text($"{StatusIcon(itm.ValidationStatus)} |"));
+        //                    runN1.AppendChild(new Text($"{StatusIcon(itm.ValidationStatus)} |"));
 
 
-                            Run runN2 = paraN1.AppendChild(new Run());
-                            RunProperties runPropsN2 = new RunProperties();
-                            runPropsN2.Append(new Color() { Val = "#000000" });
-                            runN2.Append(runPropsN2);
-                            runN2.AppendChild(new Text($"{itm.Requirement?.Name} {itm.Requirement?.Description} {itm.FullEntity}\n"));
+        //                    Run runN2 = paraN1.AppendChild(new Run());
+        //                    RunProperties runPropsN2 = new RunProperties();
+        //                    runPropsN2.Append(new Color() { Val = "#000000" });
+        //                    runN2.Append(runPropsN2);
+        //                    runN2.AppendChild(new Text($"{itm.Requirement?.Name} {itm.Requirement?.Description} {itm.FullEntity}\n"));
 
 
 
 
-                            foreach (var msg in itm.Messages.Where(m => m.Status != ValidationStatus.Pass))
-                            {
-                                var msgtxt = msg.ToString()
-                                    //.Replace("{", "{{")
-                                    //    .Replace("}", "}}")
-                                    ;
+        //                    foreach (var msg in itm.Messages.Where(m => m.Status != ValidationStatus.Pass))
+        //                    {
+        //                        var msgtxt = msg.ToString()
+        //                            //.Replace("{", "{{")
+        //                            //    .Replace("}", "}}")
+        //                            ;
 
-                                ;
-                                Run runN3 = paraN1.AppendChild(new Run());
-                                RunProperties runPropsN3 = new RunProperties();
-                                runPropsN3.Append(new Color() { Val = "#FF0000" });
-                                runN3.Append(runPropsN3);
-                                runN3.AppendChild(new Text($"     {msgtxt}\n"));
+        //                        ;
+        //                        Run runN3 = paraN1.AppendChild(new Run());
+        //                        RunProperties runPropsN3 = new RunProperties();
+        //                        runPropsN3.Append(new Color() { Val = "#FF0000" });
+        //                        runN3.Append(runPropsN3);
+        //                        runN3.AppendChild(new Text($"     {msgtxt}\n"));
 
 
-                            }
-                        }
-                        //else
-                        //{
-                        //    //run2.AppendChild(new Text($"  {StatusIcon(itm.ValidationStatus)} {itm.Requirement?.Name} {itm.Requirement?.Description}"));
+        //                    }
+        //                }
+        //                //else
+        //                //{
+        //                //    //run2.AppendChild(new Text($"  {StatusIcon(itm.ValidationStatus)} {itm.Requirement?.Name} {itm.Requirement?.Description}"));
 
-                        //    //console?.WriteDetail(console.GetColorForStatus(itm.ValidationStatus), "  " + StatusIcon(itm.ValidationStatus))
-                        //    //    .WriteDetail(DarkGray, $"{itm.Requirement?.Name} {itm.Requirement?.Description}")
-                        //    //    .WriteDetail(ConsoleColor.Gray, $"{itm.FullEntity}\n");
-                        //    //foreach (var msg in itm.Messages.Where(m => m.Status == ValidationStatus.Pass))
-                        //    //{
-                        //    //    console?.WriteTrace(DarkGray, $"     {msg}\n");
-                        //    //}
-                        //}
-                        //Console.Write(".");
-                    }
-                    //run2.AppendChild(new Text("\n"));
+        //                //    //console?.WriteDetail(console.GetColorForStatus(itm.ValidationStatus), "  " + StatusIcon(itm.ValidationStatus))
+        //                //    //    .WriteDetail(DarkGray, $"{itm.Requirement?.Name} {itm.Requirement?.Description}")
+        //                //    //    .WriteDetail(ConsoleColor.Gray, $"{itm.FullEntity}\n");
+        //                //    //foreach (var msg in itm.Messages.Where(m => m.Status == ValidationStatus.Pass))
+        //                //    //{
+        //                //    //    console?.WriteTrace(DarkGray, $"     {msg}\n");
+        //                //    //}
+        //                //}
+        //                //Console.Write(".");
+        //            }
+        //            //run2.AppendChild(new Text("\n"));
 
-                }
+        //        }
 
 
 
-                //console?.WriteDetailLine(ConsoleColor.Blue, $"  🔎  For {req.Specification.Applicability.GetApplicabilityDescription().SplitClauses()}\n");
-                //if (req.Specification.Cardinality.AllowsRequirements)
-                //    console?.WriteDetailLine(DarkGreen, $"  📏  It is {req.Specification.Cardinality.Description} that elements {req.Specification.Requirement?.GetRequirementDescription().SplitClauses()}\n");
+        //        //console?.WriteDetailLine(ConsoleColor.Blue, $"  🔎  For {req.Specification.Applicability.GetApplicabilityDescription().SplitClauses()}\n");
+        //        //if (req.Specification.Cardinality.AllowsRequirements)
+        //        //    console?.WriteDetailLine(DarkGreen, $"  📏  It is {req.Specification.Cardinality.Description} that elements {req.Specification.Requirement?.GetRequirementDescription().SplitClauses()}\n");
 
-                //run2.AppendChild(new Text("PLUTO"));
+        //        //run2.AppendChild(new Text("PLUTO"));
 
-                // Salva il documento.
-                mainPart.Document.Save();
-            }
-        }
+        //        // Salva il documento.
+        //        mainPart.Document.Save();
+        //    }
+        //}
 
 #if SQLite
     private static IModel BuildModelSqlLite(string ifcFile)

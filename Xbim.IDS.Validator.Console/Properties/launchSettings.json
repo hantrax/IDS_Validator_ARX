@@ -2,7 +2,7 @@
   "profiles": {
     "Xbim.IDS.Validator.Console": {
       "commandName": "Project",
-      "commandLineArgs": "verify \"C:\\ids_modelli\\stefano\\3.ifc\" -ids \"C:\\ids_modelli\\stefano\\4.ids\" -v \"Normal\""
+      "commandLineArgs": "verify \"C:\\ids_modelli\\stefano\\4.ifc\" -ids \"C:\\ids_modelli\\stefano\\44.ids\" -v \"Normal\""
     }
   }
 }
